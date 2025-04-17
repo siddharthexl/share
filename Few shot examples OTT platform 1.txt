@@ -1,0 +1,461 @@
+sql_examples = [
+{
+"input": "How many active users watched content last month?",
+"query": f"""
+-- Active users are users who watched content (watched_content = TRUE)
+-- Calculate for the last full month dynamically
+WITH last_month AS (
+  SELECT DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month') AS start_date,
+         (DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 day') AS end_date
+)
+SELECT COUNT(DISTINCT user_id) AS active_users
+FROM User_Subscription_Data, last_month
+WHERE watched_content = TRUE
+  AND date BETWEEN last_month.start_date AND last_month.end_date
+"""
+},
+
+{
+"input": "Show total watch time by genre",
+"query": f"""
+-- Summing up watch_time grouped by genre to analyze content engagement
+SELECT genre,
+       ROUND(SUM(watch_time), 2) AS total_watch_time_hours
+FROM OTT_Viewership_Data
+GROUP BY genre
+ORDER BY total_watch_time_hours DESC
+"""
+},
+
+{
+"input": "Top 5 most watched titles in February 2025",
+"query": f"""
+-- Ranking content by total watch_time for the month before last
+WITH feb_dates AS (
+  SELECT DATE_TRUNC('month', CURRENT_DATE - INTERVAL '2 months') AS start_date,
+         (DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month') - INTERVAL '1 day') AS end_date
+)
+SELECT title,
+       ROUND(SUM(watch_time), 2) AS total_watch_time_hours
+FROM OTT_Viewership_Data, feb_dates
+WHERE date BETWEEN feb_dates.start_date AND feb_dates.end_date
+GROUP BY title
+ORDER BY total_watch_time_hours DESC
+LIMIT 5
+"""
+},
+
+{
+"input": "What is the distribution of subscription tiers?",
+"query": f"""
+-- Counting number of users grouped by their subscription tier
+SELECT tier,
+       COUNT(DISTINCT user_id) AS num_users
+FROM User_Subscription_Data
+GROUP BY tier
+"""
+},
+
+{
+"input": "How many users used a voucher code during signup?",
+"query": f"""
+-- Count distinct users with non-null voucher_code (voucher usage)
+SELECT COUNT(DISTINCT user_id) AS users_with_voucher
+FROM User_Subscription_Data
+WHERE voucher_code IS NOT NULL
+"""
+},
+
+{
+"input": "Compare watch time across streaming quality levels",
+"query": f"""
+-- Percentage of watch time for each streaming_quality (SD, HD, 4K)
+WITH total AS (
+  SELECT SUM(watch_time) AS total_watch_time
+  FROM OTT_Viewership_Data
+)
+SELECT streaming_quality,
+       ROUND(SUM(watch_time) / total.total_watch_time * 100, 2) AS percentage_watch_time
+FROM OTT_Viewership_Data, total
+GROUP BY streaming_quality, total.total_watch_time
+ORDER BY percentage_watch_time DESC
+"""
+},
+
+{
+"input": "What time of day sees the most viewing?",
+"query": f"""
+-- Analyze engagement across time_of_day (e.g., Primetime, Late night)
+SELECT time_of_day,
+       SUM(n_impressions) AS total_impressions,
+       ROUND(SUM(watch_time), 2) AS total_watch_time_hours
+FROM OTT_Viewership_Data
+GROUP BY time_of_day
+ORDER BY total_watch_time_hours DESC
+"""
+},
+
+{
+"input": "What are the most common signup devices?",
+"query": f"""
+-- Distribution of user signup device types
+SELECT signup_device,
+       COUNT(DISTINCT user_id) AS user_count
+FROM User_Subscription_Data
+GROUP BY signup_device
+ORDER BY user_count DESC
+"""
+},
+
+{
+"input": "What's the average watch time for premium plan users?",
+"query": f"""
+-- Filtering for subscription_plan = 'premium' and calculating average watch_time
+SELECT subscription_plan,
+       ROUND(AVG(watch_time), 2) AS avg_watch_time
+FROM OTT_Viewership_Data
+WHERE subscription_plan = 'premium'
+GROUP BY subscription_plan
+"""
+},
+
+{
+"input": "Show churn proxy: users inactive for 7 days",
+"query": f"""
+-- Identify users who have not watched content for 7 consecutive days
+-- Simplified example: users with 7+ FALSE watched_content logs
+SELECT user_id
+FROM User_Subscription_Data
+WHERE watched_content = FALSE
+GROUP BY user_id
+HAVING COUNT(*) >= 7
+"""
+},
+
+{
+"input": "How effective is search in content discovery?",
+"query": f"""
+-- Calculate impressions and watch time for discovery_method = 'Search'
+SELECT discovery_method,
+       COUNT(*) AS total_views,
+       ROUND(SUM(watch_time), 2) AS total_watch_time
+FROM OTT_Viewership_Data
+WHERE discovery_method = 'Search'
+GROUP BY discovery_method
+"""
+},
+
+{
+"input": "Average watch time by subscription plan",
+"query": f"""
+-- Compare engagement across different subscription plans
+SELECT subscription_plan,
+       ROUND(AVG(watch_time), 2) AS avg_watch_time
+FROM OTT_Viewership_Data
+GROUP BY subscription_plan
+ORDER BY avg_watch_time DESC
+"""
+},
+
+{
+"input": "Top 5 U.S. states by watch time",
+"query": f"""
+-- Rank geo_state by total watch_time
+SELECT geo_state,
+       ROUND(SUM(watch_time), 2) AS total_watch_time
+FROM OTT_Viewership_Data
+GROUP BY geo_state
+ORDER BY total_watch_time DESC
+LIMIT 5
+"""
+},
+
+{
+"input": "Monthly trend of active users",
+"query": f"""
+-- Count distinct active users (watched_content = TRUE) per month
+SELECT DATE_TRUNC('month', date) AS month,
+       COUNT(DISTINCT user_id) AS active_users
+FROM User_Subscription_Data
+WHERE watched_content = TRUE
+GROUP BY month
+ORDER BY month
+"""
+},
+
+{
+"input": "Which genres are popular in California?",
+"query": f"""
+-- Filter geo_state = 'California', group by genre
+SELECT genre,
+       ROUND(SUM(watch_time), 2) AS total_watch_time
+FROM OTT_Viewership_Data
+WHERE geo_state = 'California'
+GROUP BY genre
+ORDER BY total_watch_time DESC
+"""
+},
+
+{
+"input": "Users by billing platform",
+"query": f"""
+-- Grouping users by billing_platform
+SELECT billing_platform,
+       COUNT(DISTINCT user_id) AS user_count
+FROM User_Subscription_Data
+GROUP BY billing_platform
+ORDER BY user_count DESC
+"""
+},
+
+{
+"input": "Watch time trends by device type",
+"query": f"""
+-- Grouping watch_time by device_type
+SELECT device_type,
+       DATE_TRUNC('month', date) AS month,
+       ROUND(SUM(watch_time), 2) AS total_watch_time
+FROM OTT_Viewership_Data
+GROUP BY device_type, month
+ORDER BY month
+"""
+},
+
+{
+"input": "Top 5 content discovery methods",
+"query": f"""
+-- Total impressions by discovery_method
+SELECT discovery_method,
+       SUM(n_impressions) AS total_impressions
+FROM OTT_Viewership_Data
+GROUP BY discovery_method
+ORDER BY total_impressions DESC
+LIMIT 5
+"""
+},
+
+{
+"input": "Churn trend: users becoming inactive",
+"query": f"""
+-- Users who stopped watching content after being active
+-- Simplified version using last watch date
+SELECT user_id,
+       MAX(date) AS last_active_date
+FROM User_Subscription_Data
+WHERE watched_content = TRUE
+GROUP BY user_id
+HAVING MAX(date) < CURRENT_DATE - INTERVAL '30 days'
+"""
+},
+
+{
+"input": "Average impressions per title",
+"query": f"""
+-- Calculate average impressions grouped by content title
+SELECT title,
+       ROUND(AVG(n_impressions), 2) AS avg_impressions
+FROM OTT_Viewership_Data
+GROUP BY title
+ORDER BY avg_impressions DESC
+"""
+},
+
+{
+"input": "Users using Smart TV vs Mobile",
+"query": f"""
+-- Signup devices breakdown for Smart TV and Mobile
+SELECT signup_device,
+       COUNT(DISTINCT user_id) AS user_count
+FROM User_Subscription_Data
+WHERE signup_device IN ('Smart TV', 'Mobile')
+GROUP BY signup_device
+"""
+},
+
+{
+"input": "Which OS drives more watch time?",
+"query": f"""
+-- Compare watch time by operating_system
+SELECT operating_system,
+       ROUND(SUM(watch_time), 2) AS total_watch_time
+FROM OTT_Viewership_Data
+GROUP BY operating_system
+ORDER BY total_watch_time DESC
+"""
+},
+
+{
+"input": "Monthly trial to premium conversion",
+"query": f"""
+-- Estimate transition by checking subscription_plan change
+SELECT DATE_TRUNC('month', date) AS month,
+       COUNT(DISTINCT CASE WHEN subscription_plan = 'trial' THEN user_id END) AS trial_users,
+       COUNT(DISTINCT CASE WHEN subscription_plan = 'premium' THEN user_id END) AS premium_users
+FROM User_Subscription_Data
+GROUP BY month
+ORDER BY month
+"""
+},
+
+{
+"input": "Average number of titles watched per user",
+"query": f"""
+-- Estimating user engagement by impressions / user
+SELECT ROUND(SUM(n_impressions) / COUNT(DISTINCT subscription_plan), 2) AS avg_titles_per_user
+FROM OTT_Viewership_Data
+"""
+},
+
+{
+"input": "Top 3 subtitle languages used",
+"query": f"""
+-- Analyze preference by subtitle_language
+SELECT subtitle_language,
+       COUNT(*) AS usage_count
+FROM OTT_Viewership_Data
+WHERE subtitle_language IS NOT NULL
+GROUP BY subtitle_language
+ORDER BY usage_count DESC
+LIMIT 3
+"""
+},
+
+{
+"input": "Total impressions and watch time by DMA",
+"query": f"""
+-- Geo-level analysis by geo_dma
+SELECT geo_dma,
+       SUM(n_impressions) AS total_impressions,
+       ROUND(SUM(watch_time), 2) AS total_watch_time
+FROM OTT_Viewership_Data
+GROUP BY geo_dma
+ORDER BY total_watch_time DESC
+"""
+},
+
+{
+"input": "Top devices for premium users",
+"query": f"""
+-- Device usage filtered by subscription_plan
+SELECT device_type,
+       COUNT(*) AS views
+FROM OTT_Viewership_Data
+WHERE subscription_plan = 'premium'
+GROUP BY device_type
+ORDER BY views DESC
+"""
+},
+
+{
+"input": "How many active users watched content last month?",
+"query": f"""
+-- Active users are users who watched content (watched_content = TRUE)
+-- Calculate for the last full month dynamically
+WITH last_month AS (
+SELECT DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month') AS start_date,
+(DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 day') AS end_date
+)
+SELECT COUNT(DISTINCT user_id) AS active_users
+FROM User_Subscription_Data, last_month
+WHERE watched_content = TRUE
+AND date BETWEEN last_month.start_date AND last_month.end_date
+"""
+},
+
+{
+"input": "Show total watch time by genre",
+"query": f"""
+-- Summing up watch_time grouped by genre to analyze content engagement
+SELECT genre,
+ROUND(SUM(watch_time), 2) AS total_watch_time_hours
+FROM OTT_Viewership_Data
+GROUP BY genre
+ORDER BY total_watch_time_hours DESC
+"""
+},
+
+{
+"input": "Top 5 most watched titles in February 2025",
+"query": f"""
+-- Ranking content by total watch_time for the month before last
+WITH feb_dates AS (
+SELECT DATE_TRUNC('month', CURRENT_DATE - INTERVAL '2 months') AS start_date,
+(DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month') - INTERVAL '1 day') AS end_date
+)
+SELECT title,
+ROUND(SUM(watch_time), 2) AS total_watch_time_hours
+FROM OTT_Viewership_Data, feb_dates
+WHERE date BETWEEN feb_dates.start_date AND feb_dates.end_date
+GROUP BY title
+ORDER BY total_watch_time_hours DESC
+LIMIT 5
+"""
+},
+
+{
+"input": "What was the churn rate of the Premium tier last month?",
+"query": f"""
+-- Estimate churn as the proportion of users who left Premium tier
+WITH active_base_start AS (
+SELECT DISTINCT user_id
+FROM User_Subscription_Data
+WHERE date = DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month') - INTERVAL '1 day'
+AND tier = 'premium'
+),
+active_base_end AS (
+SELECT DISTINCT user_id
+FROM User_Subscription_Data
+WHERE date = DATE_TRUNC('month', CURRENT_DATE)
+AND tier = 'premium'
+)
+SELECT ROUND(1 - (COUNT(b.user_id) * 1.0 / COUNT(a.user_id)), 4) AS churn_rate
+FROM active_base_start a
+LEFT JOIN active_base_end b
+ON a.user_id = b.user_id
+"""
+},
+
+{
+"input": "How many users upgraded from Free to Premium last month?",
+"query": f"""
+-- Capture tier transitions using lag() and count Free -> Premium moves
+WITH tier_changes AS (
+SELECT user_id,
+tier AS current_tier,
+LAG(tier) OVER (PARTITION BY user_id ORDER BY date) AS previous_tier
+FROM User_Subscription_Data
+WHERE date BETWEEN DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month')
+AND (DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 day')
+)
+SELECT COUNT(DISTINCT user_id) AS users_upgraded_free_to_premium
+FROM tier_changes
+WHERE previous_tier = 'free'
+AND current_tier = 'premium'
+"""
+},
+
+{
+"input": "How many users purchased the Premium tier last month? Profile by new and winbacks.",
+"query": f"""
+-- Identify Premium purchasers and segment them as New vs Winback
+WITH tier_changes AS (
+SELECT user_id,
+tier AS current_tier,
+LAG(tier) OVER (PARTITION BY user_id ORDER BY date) AS previous_tier
+FROM User_Subscription_Data
+WHERE date BETWEEN DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month')
+AND (DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 day')
+)
+SELECT CASE
+WHEN previous_tier IS NULL THEN 'New'
+ELSE 'Winback'
+END AS purchase_type,
+COUNT(DISTINCT user_id) AS n_users
+FROM tier_changes
+WHERE current_tier = 'premium'
+AND (previous_tier IS NULL OR previous_tier IN ('free', 'basic'))
+GROUP BY purchase_type
+"""
+}
+]
+
